@@ -1,0 +1,8 @@
+Metadata-Version: 2.1
+Name: protein
+Version: 0.1
+Summary: Handling common tasks regarding deep learning for protein projects.
+Home-page: #
+Author: Gabriel Ducrocq
+Author-email: gabrielducrocq.maths@@gmail.com
+License: MIT

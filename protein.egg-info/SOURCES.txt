@@ -1,0 +1,9 @@
+setup.py
+protein/__init__.py
+protein/main.py
+protein/model_analysis.py
+protein.egg-info/PKG-INFO
+protein.egg-info/SOURCES.txt
+protein.egg-info/dependency_links.txt
+protein.egg-info/not-zip-safe
+protein.egg-info/top_level.txt

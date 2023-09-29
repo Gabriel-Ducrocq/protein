@@ -1,5 +1,6 @@
 setup.py
 protein/__init__.py
+protein/create_dataset_from_MD.py
 protein/main.py
 protein/model_analysis.py
 protein.egg-info/PKG-INFO

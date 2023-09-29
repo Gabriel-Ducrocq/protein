@@ -3,6 +3,8 @@ from Bio.PDB import PDBParser
 from Bio.PDB import PDBIO
 from Bio.PDB.vectors import Vector
 from scipy.spatial.transform import Rotation
+import Bio.PDB as bpdb
+
 
 
 def get_positions(residue, name):
@@ -50,11 +52,11 @@ def get_orthonormal_basis(u1, u2):
 
 def rotate_pdb_structure_axis_angle(pdb_structure, axis, angle):
     """
-
+    Rotates the entire structure according to an axis and angle of rotation.
     :param axis: numpy.array (1, 3) of axis against which we make the rotation
     :param angle: float, angle of the rotation in radians
     """
-    assert np.sum(axis) == 1
+    assert np.round(np.sum(axis**2), 3) == 1
     rotvec = angle*axis
     rotation = Rotation.from_rotvec(rotvec)
     rotation_matrix = rotation.as_matrix()
@@ -67,7 +69,7 @@ def rotate_pdb_structure_axis_angle(pdb_structure, axis, angle):
 def rotate_pdb_structure_matrix(pdb_structure, rotation_matrix):
     """
 
-    :param axis: numpy.array (1, 3) of axis against which we make the rotation
+    :param axis: numpy.array (3, 3)
     :param angle: float, angle of the rotation in radians
     """
     all_coords = np.concatenate([atom.coord[:, None] for atom in pdb_structure.get_atoms()], axis=1)
@@ -151,6 +153,15 @@ def translate_residues(pdb_structure, translations):
         for atom in res.get_atoms():
             atom.set_coord(atom.coord + translations[idx])
 
+def remove_residue(pdb_structure, residue_name):
+    """
+    Translate the residues with the corresponding translation vector
+    :param pdb_structure: pdb structure in biopython
+    :param residue_name: str, name of the residue
+    """
+    for idx, res in enumerate(pdb_structure.get_residues()):
+        for atom in res.get_atoms():
+            atom.set_coord(atom.coord)
 
 
 def translate_domain_pdb_structure(pdb_structure, start_residue, end_residue, translation):
@@ -189,12 +200,40 @@ def compute_rmsd_pdb(path1, path2):
 
 
 
-def project_image(pdb_structure):
+
+
+
+def compute_ctf(freqs: np.ndarray, volt: float, cs: float, w: float, df: float, phase_shift: float = 0,
+                bfactor = None) -> np.ndarray:
     """
-    Project the structure on the x-y plane
-    :param pdb_structure: pdb_structure in biopython
+    Compute the 2D CTF
+    Input:
+        freqs (np.ndarray) NxN array of 2D spatial frequencies squared and then summed to get the spatial frequency
+        volt (float): accelerating voltage (kV)
+        cs (float): spherical aberration (Å)
+        w (float): amplitude contrast ratio
+        df (float): defocus (Å)
+        phase_shift (float): degrees
+        bfactor (float): envelope fcn B-factor (Angstrom^2)
     """
-    pass
+    # convert units
+    volt = volt * 1000
+    phase_shift = phase_shift * np.pi / 180
+
+    # lam = sqrt(h^2/(2*m*e*Vr)); Vr = V + (e/(2*m*c^2))*V^2
+    lam = 12.2639 / np.sqrt(volt + 0.97845e-6 * volt ** 2)
+    s2 = freqs
+    #df = 0.5 * (dfu + dfv + (dfu - dfv) * np.cos(2 * (ang - dfang)))
+    df = df
+    gamma = (
+            2 * np.pi * (-0.5 * df * lam * s2 + 0.25 * cs * lam ** 3 * s2 ** 2)
+            - phase_shift
+    )
+    ctf = np.sqrt(1 - w ** 2) * np.sin(gamma) - w * np.cos(gamma)
+    if bfactor is not None:
+        ctf *= np.exp(-bfactor / 4 * s2)
+
+    return ctf
 
 
 """
